@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   FileText,
+  FlaskConical,
   LayoutDashboard,
   MessagesSquare,
   Music2,
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/tiktok", label: "TikTok Tracker", icon: Music2 },
   { href: "/facebook", label: "Facebook Tracker", icon: MessagesSquare },
   { href: "/content-gap", label: "Khoảng trống nội dung", icon: ScanSearch },
+  { href: "/openai-test", label: "Prompt sản xuất nội dung", icon: FlaskConical },
   { href: "/reports", label: "Tạo báo cáo phân tích", icon: FileText },
   { href: "/settings", label: "Cấu hình nguồn dữ liệu", icon: Settings }
 ];

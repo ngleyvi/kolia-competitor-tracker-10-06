@@ -1,18 +1,36 @@
-import { OpenAITestPanel } from "@/components/OpenAITestPanel";
+import { ContentPromptStudio } from "@/components/ContentPromptStudio";
+import { getContentGapAnalytics, getOverviewAnalytics } from "@/lib/analytics";
 import { getOpenAIModel, isOpenAIConfigured } from "@/lib/openai";
+import type { Platform } from "@/lib/types";
 
-export default function OpenAITestPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ContentPromptStudioPage() {
+  const [gap, overview] = await Promise.all([
+    getContentGapAnalytics({ days: 90 }),
+    getOverviewAnalytics({ days: 90 })
+  ]);
+
+  const lessonPosts = overview.topPosts.slice(0, 18).map((post) => ({
+    title: post.title,
+    competitor: post.competitor.name,
+    platform: post.platform as Platform,
+    contentPillar: post.contentPillar,
+    hookType: post.hookType,
+    toneOfVoice: post.toneOfVoice,
+    mainTopic: post.mainTopic,
+    sourceUrl: post.postUrl
+  }));
+
+  const formulas = [...gap.foreign.shortForm, ...gap.foreign.longForm].slice(0, 6);
+
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm font-bold uppercase tracking-[0.16em] text-kolia-green">AI analysis sandbox</p>
-        <h1 className="mt-2 text-3xl font-bold text-kolia-ink">Kiểm tra OpenAI Responses API</h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          Trang này gọi API route server-side, đọc `OPENAI_API_KEY` từ `.env` và dùng OpenAI Responses API để kiểm tra khả năng phân tích nội dung cho Kolia.
-        </p>
-      </div>
-
-      <OpenAITestPanel configured={isOpenAIConfigured()} model={getOpenAIModel()} />
-    </div>
+    <ContentPromptStudio
+      configured={isOpenAIConfigured()}
+      model={getOpenAIModel()}
+      domestic={gap.domestic}
+      formulas={formulas}
+      lessonPosts={lessonPosts}
+    />
   );
 }
