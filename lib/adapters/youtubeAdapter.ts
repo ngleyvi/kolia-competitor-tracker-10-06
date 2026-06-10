@@ -75,6 +75,8 @@ type YouTubeVideosResponse = {
 };
 
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
+const channelIdCache = new Map<string, string>();
+const uploadsPlaylistCache = new Map<string, string>();
 
 export class YouTubeAdapter implements CompetitorDataAdapter {
   private fallback = new MockAdapter();
@@ -131,11 +133,38 @@ async function youtubeGet<T>(path: string, params: Record<string, string | numbe
 
 async function resolveChannelId(competitor: Competitor, apiKey: string) {
   const url = competitor.channelUrl;
+  const cacheKey = `${competitor.id}:${url}`;
+  const cached = channelIdCache.get(cacheKey);
+  if (cached) return cached;
+
   const directChannelId = url.match(/youtube\.com\/channel\/([A-Za-z0-9_-]+)/)?.[1];
-  if (directChannelId) return directChannelId;
+  if (directChannelId) {
+    channelIdCache.set(cacheKey, directChannelId);
+    return directChannelId;
+  }
 
   const handle = url.match(/youtube\.com\/@([^/?#]+)/)?.[1];
-  const searchQuery = handle ? `@${decodeURIComponent(handle)}` : competitor.name;
+  if (handle) {
+    const decodedHandle = decodeURIComponent(handle);
+    const channels = await youtubeGet<YouTubeChannelsResponse>(
+      "channels",
+      {
+        part: "contentDetails",
+        forHandle: decodedHandle,
+        maxResults: 1
+      },
+      apiKey
+    );
+    const channelId = channels.items?.[0]?.id ?? "";
+    if (channelId) {
+      channelIdCache.set(cacheKey, channelId);
+      return channelId;
+    }
+
+    return "";
+  }
+
+  const searchQuery = competitor.name;
   const search = await youtubeGet<YouTubeSearchResponse>(
     "search",
     {
@@ -147,10 +176,15 @@ async function resolveChannelId(competitor: Competitor, apiKey: string) {
     apiKey
   );
 
-  return search.items?.[0]?.id?.channelId ?? search.items?.[0]?.snippet?.channelId ?? "";
+  const channelId = search.items?.[0]?.id?.channelId ?? search.items?.[0]?.snippet?.channelId ?? "";
+  if (channelId) channelIdCache.set(cacheKey, channelId);
+  return channelId;
 }
 
 async function getUploadsPlaylistId(channelId: string, apiKey: string) {
+  const cached = uploadsPlaylistCache.get(channelId);
+  if (cached) return cached;
+
   const channels = await youtubeGet<YouTubeChannelsResponse>(
     "channels",
     {
@@ -161,7 +195,9 @@ async function getUploadsPlaylistId(channelId: string, apiKey: string) {
     apiKey
   );
 
-  return channels.items?.[0]?.contentDetails?.relatedPlaylists?.uploads ?? "";
+  const playlistId = channels.items?.[0]?.contentDetails?.relatedPlaylists?.uploads ?? "";
+  if (playlistId) uploadsPlaylistCache.set(channelId, playlistId);
+  return playlistId;
 }
 
 async function getLatestVideoIds(playlistId: string, apiKey: string) {
