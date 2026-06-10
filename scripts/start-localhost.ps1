@@ -6,7 +6,7 @@ $NextBin = Join-Path $ProjectRoot "node_modules\next\dist\bin\next"
 $LogPath = Join-Path $ProjectRoot "dev-server.log"
 $ErrPath = Join-Path $ProjectRoot "dev-server.err.log"
 $StartupLogPath = Join-Path $ProjectRoot "startup-localhost.log"
-$Url = "http://127.0.0.1:3000/openai-test"
+$Url = "http://127.0.0.1:3000/"
 
 function Write-StartupLog {
   param([string]$Message)
