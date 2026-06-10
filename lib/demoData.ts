@@ -223,6 +223,13 @@ export function upsertDemoPostsForCompetitor(competitor: DemoCompetitor, rawPost
   return { createdPosts, updatedPosts };
 }
 
+export function clearDemoPostsForPlatform(platform: Platform) {
+  const state = getDemoState();
+  const before = state.posts.length;
+  state.posts = state.posts.filter((post) => post.platform !== platform);
+  return before - state.posts.length;
+}
+
 export function syncDemoData(platform?: Platform, options: { excludePlatforms?: Platform[] } = {}) {
   const state = getDemoState();
   state.syncRuns += 1;

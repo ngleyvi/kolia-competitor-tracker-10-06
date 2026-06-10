@@ -2,6 +2,7 @@ import type { Competitor, Post } from "@prisma/client";
 import { contentPillars } from "@/lib/constants";
 import { getDemoCompetitors, getDemoPosts, isPublicDemoRuntime } from "@/lib/demoData";
 import { prisma } from "@/lib/prisma";
+import { hasPublicYoutubeApiKey, syncPublicYoutubeData } from "@/lib/publicYoutubeData";
 import type { AnalyticsFilters, Platform, SortBy, SourceType } from "@/lib/types";
 import { daysAgo } from "@/lib/utils";
 
@@ -34,6 +35,10 @@ function sortOrder(sortBy?: SortBy) {
 
 export async function getFilteredPosts(filters: AnalyticsFilters = {}, limit?: number): Promise<PostWithCompetitor[]> {
   if (isPublicDemoRuntime()) {
+    const platform = cleanFilter(filters.platform);
+    if ((!platform || platform === "youtube") && hasPublicYoutubeApiKey()) {
+      await syncPublicYoutubeData();
+    }
     return getDemoPosts(filters, limit);
   }
 
