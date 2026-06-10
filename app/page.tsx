@@ -13,6 +13,8 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage({ searchParams }: PageProps) {
   const params = (await searchParams) ?? {};
   const filters = parseAnalyticsFilters(params);

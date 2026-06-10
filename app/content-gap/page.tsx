@@ -7,6 +7,8 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function ContentGapPage({ searchParams }: PageProps) {
   const filters = parseAnalyticsFilters((await searchParams) ?? {});
   const gap = await getContentGapAnalytics(filters);

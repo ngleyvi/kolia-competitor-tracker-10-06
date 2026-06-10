@@ -5,6 +5,8 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function YouTubePage({ searchParams }: PageProps) {
   const filters = parseAnalyticsFilters((await searchParams) ?? {});
   return (
