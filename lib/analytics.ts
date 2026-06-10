@@ -390,12 +390,17 @@ export async function getPlatformAnalytics(platform: Platform, filters: Analytic
   ]);
   const domesticGap = buildDomesticGap(posts);
   const foreignFormula = buildForeignFormula(posts);
+  const totalViews = posts.reduce((sum, post) => sum + post.views, 0);
+  const totalInteractions = posts.reduce((sum, post) => sum + post.likes + post.comments + post.shares, 0);
 
   return {
     platform,
     totalCompetitors: competitors.length,
     totalPosts: posts.length,
     avgEngagement: average(posts.map((post) => post.engagementRate)),
+    totalViews,
+    totalInteractions,
+    avgViewsPerPost: posts.length ? totalViews / posts.length : 0,
     competitorSummaries: competitorSummaries(posts, competitors),
     topPosts: posts.slice(0, 15),
     topPillars: aggregatePosts(posts, "contentPillar").slice(0, 10),

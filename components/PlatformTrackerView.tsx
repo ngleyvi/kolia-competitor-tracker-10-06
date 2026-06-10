@@ -1,6 +1,7 @@
-import { BarChart3, RadioTower, Users, Zap } from "lucide-react";
+import { Eye, MessageCircle, RadioTower, Users } from "lucide-react";
+import { AddYoutubeCompetitorButton } from "@/components/AddYoutubeCompetitorButton";
 import { ContentGapPanel } from "@/components/ContentGapPanel";
-import { ContentPillarChart } from "@/components/ContentPillarChart";
+import { ContentOpportunityChart } from "@/components/ContentOpportunityChart";
 import { CompetitorTable } from "@/components/CompetitorTable";
 import { FilterBar } from "@/components/FilterBar";
 import { MetricCard } from "@/components/MetricCard";
@@ -11,7 +12,7 @@ import { ViralFormulaCard } from "@/components/ViralFormulaCard";
 import { getPlatformAnalytics } from "@/lib/analytics";
 import { platformLabels } from "@/lib/constants";
 import type { AnalyticsFilters, Platform } from "@/lib/types";
-import { formatNumber, formatPercent } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils";
 
 export async function PlatformTrackerView({
   platform,
@@ -35,22 +36,28 @@ export async function PlatformTrackerView({
           <h1 className="mt-2 text-3xl font-bold text-kolia-ink">{title}</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{subtitle}</p>
         </div>
-        <PlatformTabs active={platform} />
+        <div className="flex flex-wrap items-center gap-3">
+          {platform === "youtube" ? <AddYoutubeCompetitorButton /> : null}
+          <PlatformTabs active={platform} />
+        </div>
       </div>
 
       <FilterBar filters={filters} lockPlatform={platform} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Đối thủ đang theo dõi" value={formatNumber(analytics.totalCompetitors)} detail="Nguồn dữ liệu được lấy từ SQLite cục bộ." icon={<Users className="h-5 w-5" />} />
-        <MetricCard title="Bài/video đã thu thập" value={formatNumber(analytics.totalPosts)} detail="Được phân loại tự động bằng bộ quy tắc nội dung." icon={<RadioTower className="h-5 w-5" />} />
-        <MetricCard title="Tỷ lệ tương tác bình quân" value={formatPercent(analytics.avgEngagement)} detail="Tính theo lượt thích, bình luận và chia sẻ trên lượt xem." icon={<BarChart3 className="h-5 w-5" />} />
-        <MetricCard title="Trụ cột hiệu quả nhất" value={analytics.topPillars[0]?.name ?? "Chưa có"} detail="Dựa trên tỷ lệ tương tác bình quân trong phạm vi lọc." icon={<Zap className="h-5 w-5" />} />
+        <MetricCard title="Đối thủ đang theo dõi" value={formatNumber(analytics.totalCompetitors)} detail={`Chỉ tính các kênh thuộc ${platformLabels[platform]} trong danh sách đã import.`} icon={<Users className="h-5 w-5" />} />
+        <MetricCard title="Nội dung đã thu thập" value={formatNumber(analytics.totalPosts)} detail="Chỉ bao gồm nội dung đã publish, không lấy video đang chờ phát hoặc chưa công khai." icon={<RadioTower className="h-5 w-5" />} />
+        <MetricCard title="Lượt xem bình quân / nội dung" value={formatNumber(analytics.avgViewsPerPost)} detail="Đánh giá quy mô tiếp cận trung bình của mỗi nội dung trong phạm vi lọc." icon={<Eye className="h-5 w-5" />} />
+        <MetricCard title="Tổng tương tác ghi nhận" value={formatNumber(analytics.totalInteractions)} detail="Tổng like, comment và share để nhận diện chủ đề/kênh cần nghiên cứu sâu hơn." icon={<MessageCircle className="h-5 w-5" />} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
-        <ContentPillarChart data={analytics.topPillars} />
+        <ContentOpportunityChart data={analytics.topPillars} />
         <section className="rounded border border-kolia-line bg-white p-5 shadow-sm">
-          <h2 className="text-base font-bold text-kolia-ink">Nội dung có tỷ lệ tương tác cao</h2>
+          <h2 className="text-base font-bold text-kolia-ink">Nội dung có tỷ lệ người xem tương tác cao</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            Tỷ lệ tương tác = (like + comment + share) / lượt xem. Không dùng điểm lan tỏa nội bộ ở phần này.
+          </p>
           <div className="mt-4 space-y-3">
             {analytics.topPosts.slice(0, 4).map((post, index) => (
               <TopPostCard key={post.id} post={post} rank={index + 1} />
@@ -67,7 +74,7 @@ export async function PlatformTrackerView({
         <FacebookAnalysis analytics={analytics} ctaPosts={ctaPosts} />
       )}
 
-      <CompetitorTable summaries={analytics.competitorSummaries} />
+      <CompetitorTable summaries={analytics.competitorSummaries} lockPlatform={platform} />
       <PostTable posts={analytics.topPosts} title={`Bảng nội dung nổi bật trên ${platformLabels[platform]} theo trụ cột nội dung, link gốc và phân loại`} />
     </div>
   );
@@ -94,7 +101,7 @@ function YouTubeAnalysis({ analytics }: { analytics: Awaited<ReturnType<typeof g
           </div>
         </section>
         <section className="rounded border border-kolia-line bg-white p-5 shadow-sm">
-          <h2 className="text-base font-bold text-kolia-ink">Cấu trúc nội dung tạo lan tỏa từ kênh nước ngoài</h2>
+          <h2 className="text-base font-bold text-kolia-ink">Cấu trúc nội dung tạo sức hút từ kênh nước ngoài</h2>
           <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
             {analytics.foreignFormula.viralPatterns.map((pattern) => (
               <li key={pattern} className="flex gap-2">
@@ -111,7 +118,7 @@ function YouTubeAnalysis({ analytics }: { analytics: Awaited<ReturnType<typeof g
       <section className="rounded border border-kolia-line bg-white p-5 shadow-sm">
         <h2 className="text-base font-bold text-kolia-ink">Kịch bản video và cấu trúc nội dung có thể học từ YouTube nước ngoài</h2>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Phân tích dưới đây dựa trên tiêu đề, mô tả, định dạng và chỉ số tương tác mô phỏng; đây chưa phải transcript thật của video.
+          Phân tích dựa trên tiêu đề, mô tả, định dạng và chỉ số tương tác; không phải transcript đầy đủ của video.
         </p>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           {analytics.foreignFormula.shortForm.slice(0, 2).map((formula) => (

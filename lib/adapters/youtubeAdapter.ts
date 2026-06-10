@@ -32,6 +32,7 @@ type YouTubePlaylistItemsResponse = {
       title?: string;
       description?: string;
       publishedAt?: string;
+      liveBroadcastContent?: "none" | "live" | "upcoming";
       thumbnails?: {
         maxres?: { url?: string };
         high?: { url?: string };
@@ -56,6 +57,7 @@ type YouTubeVideosResponse = {
       title?: string;
       description?: string;
       publishedAt?: string;
+      liveBroadcastContent?: "none" | "live" | "upcoming";
       thumbnails?: {
         maxres?: { url?: string };
         high?: { url?: string };
@@ -231,7 +233,13 @@ async function getVideoDetails(videoIds: string[], apiKey: string): Promise<RawP
     apiKey
   );
 
-  return (videos.items ?? []).map((video) => {
+  return (videos.items ?? [])
+    .filter((video) => {
+      const snippet = video.snippet;
+      const publishedAt = snippet?.publishedAt ? new Date(snippet.publishedAt) : new Date();
+      return snippet?.liveBroadcastContent !== "upcoming" && publishedAt.getTime() <= Date.now();
+    })
+    .map((video) => {
     const snippet = video.snippet;
     const statistics = video.statistics;
     const publishedAt = snippet?.publishedAt ? new Date(snippet.publishedAt) : new Date();

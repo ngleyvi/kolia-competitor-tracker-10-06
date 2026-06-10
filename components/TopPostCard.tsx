@@ -2,6 +2,8 @@ import type { PostWithCompetitor } from "@/lib/analytics";
 import { formatNumber, formatPercent } from "@/lib/utils";
 
 export function TopPostCard({ post, rank }: { post: PostWithCompetitor; rank: number }) {
+  const interactions = post.likes + post.comments + post.shares;
+
   return (
     <article className="rounded border border-kolia-line bg-white p-4 shadow-sm">
       <div className="flex items-start gap-3">
@@ -20,13 +22,13 @@ export function TopPostCard({ post, rank }: { post: PostWithCompetitor; rank: nu
           <p className="font-bold text-kolia-ink">{formatNumber(post.views)}</p>
           <p className="text-slate-500">Lượt xem</p>
         </div>
-        <div className="rounded bg-kolia-mint p-2">
-          <p className="font-bold text-kolia-green">{formatPercent(post.engagementRate)}</p>
+        <div className="rounded bg-slate-50 p-2">
+          <p className="font-bold text-kolia-ink">{formatNumber(interactions)}</p>
           <p className="text-slate-500">Tương tác</p>
         </div>
-        <div className="rounded bg-kolia-amber p-2">
-          <p className="font-bold text-kolia-gold">{post.viralityScore.toFixed(1)}</p>
-          <p className="text-slate-500">Lan tỏa</p>
+        <div className="rounded bg-kolia-mint p-2">
+          <p className="font-bold text-kolia-green">{formatPercent(post.engagementRate)}</p>
+          <p className="text-slate-500">Tỷ lệ tương tác</p>
         </div>
       </div>
     </article>

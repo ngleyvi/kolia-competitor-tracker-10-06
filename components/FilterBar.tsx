@@ -34,7 +34,7 @@ export function FilterBar({ filters, lockPlatform }: FilterBarProps) {
           <option value="nuoc_ngoai">Nước ngoài</option>
         </select>
         <select name="contentPillar" defaultValue={filters.contentPillar ?? ""} className={selectClass}>
-          <option value="">Trụ cột nội dung</option>
+          <option value="">Tất cả trụ cột nội dung</option>
           {contentPillars.map((pillar) => (
             <option key={pillar} value={pillar}>
               {pillar}
@@ -42,7 +42,7 @@ export function FilterBar({ filters, lockPlatform }: FilterBarProps) {
           ))}
         </select>
         <select name="format" defaultValue={filters.format ?? ""} className={selectClass}>
-          <option value="">Định dạng triển khai</option>
+          <option value="">Tất cả định dạng triển khai</option>
           {Object.entries(formatLabels).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -50,7 +50,7 @@ export function FilterBar({ filters, lockPlatform }: FilterBarProps) {
           ))}
         </select>
         <select name="promotionType" defaultValue={filters.promotionType ?? ""} className={selectClass}>
-          <option value="">Nhóm CTA/ưu đãi</option>
+          <option value="">Tất cả nhóm CTA/ưu đãi</option>
           {promotionTypes.map((promotionType) => (
             <option key={promotionType} value={promotionType}>
               {promotionType}

@@ -41,8 +41,8 @@ const platformFilterLabels = [
   { value: "facebook", label: "Facebook" }
 ];
 
-export function CompetitorTable({ summaries }: { summaries: CompetitorSummary[] }) {
-  const [platformFilter, setPlatformFilter] = useState("all");
+export function CompetitorTable({ summaries, lockPlatform }: { summaries: CompetitorSummary[]; lockPlatform?: string }) {
+  const [platformFilter, setPlatformFilter] = useState(lockPlatform ?? "all");
   const [competitorQuery, setCompetitorQuery] = useState("");
   const [sortMetric, setSortMetric] = useState<SortMetric>("avgEngagement");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
@@ -50,7 +50,7 @@ export function CompetitorTable({ summaries }: { summaries: CompetitorSummary[] 
   const competitorOptions = useMemo(
     () =>
       summaries
-        .filter((item) => platformFilter === "all" || item.competitor.platform === platformFilter)
+        .filter((item) => (lockPlatform ? item.competitor.platform === lockPlatform : platformFilter === "all" || item.competitor.platform === platformFilter))
         .map((item) => item.competitor.name)
         .sort((a, b) => a.localeCompare(b, "vi")),
     [platformFilter, summaries]
@@ -59,7 +59,7 @@ export function CompetitorTable({ summaries }: { summaries: CompetitorSummary[] 
   const filteredSummaries = useMemo(() => {
     const query = competitorQuery.trim().toLowerCase();
     return summaries
-      .filter((item) => platformFilter === "all" || item.competitor.platform === platformFilter)
+      .filter((item) => (lockPlatform ? item.competitor.platform === lockPlatform : platformFilter === "all" || item.competitor.platform === platformFilter))
       .filter((item) => !query || item.competitor.name.toLowerCase().includes(query))
       .sort((a, b) => {
         const left = a[sortMetric] ?? 0;
@@ -78,20 +78,26 @@ export function CompetitorTable({ summaries }: { summaries: CompetitorSummary[] 
               So sánh sản lượng nội dung, quy mô tiếp cận và chất lượng tương tác để xác định đối thủ cần theo dõi sát hơn.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {platformFilterLabels.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setPlatformFilter(item.value)}
-                className={`rounded px-3 py-2 text-sm font-bold transition ${
-                  platformFilter === item.value ? "bg-kolia-ink text-white" : "border border-kolia-line text-slate-600 hover:bg-kolia-mint"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          {lockPlatform ? (
+            <div className="rounded bg-kolia-ink px-3 py-2 text-sm font-bold text-white">
+              {platformLabels[lockPlatform as keyof typeof platformLabels]}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {platformFilterLabels.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setPlatformFilter(item.value)}
+                  className={`rounded px-3 py-2 text-sm font-bold transition ${
+                    platformFilter === item.value ? "bg-kolia-ink text-white" : "border border-kolia-line text-slate-600 hover:bg-kolia-mint"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_220px_220px_170px]">
