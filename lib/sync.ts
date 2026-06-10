@@ -1,7 +1,7 @@
 import { FacebookAdapter } from "@/lib/adapters/facebookAdapter";
 import { TikTokAdapter } from "@/lib/adapters/tiktokAdapter";
 import { YouTubeAdapter } from "@/lib/adapters/youtubeAdapter";
-import { isPublicDemoRuntime, syncDemoData } from "@/lib/demoData";
+import { getDemoCompetitors, isPublicDemoRuntime, syncDemoData, upsertDemoPostsForCompetitor } from "@/lib/demoData";
 import { enrichRawPost } from "@/lib/mockData";
 import { prisma } from "@/lib/prisma";
 import { getPublicSettings } from "@/lib/settings";
@@ -15,7 +15,7 @@ const adapters = {
 
 export async function syncCompetitorData(platform?: Platform) {
   if (isPublicDemoRuntime()) {
-    return syncDemoData(platform);
+    return syncPublicDemoData(platform);
   }
 
   const settings = await getPublicSettings();
@@ -90,6 +90,61 @@ export async function syncCompetitorData(platform?: Platform) {
     mockMode: settings.mockMode,
     syncedAt: new Date().toISOString()
   };
+}
+
+async function syncPublicDemoData(platform?: Platform) {
+  const hasYoutubeApiKey = Boolean(process.env.YOUTUBE_API_KEY?.trim());
+
+  if ((!platform || platform === "youtube") && hasYoutubeApiKey) {
+    const syncRunId = `${Date.now()}`;
+    const youtubeSettings = {
+      mockMode: false,
+      hasYoutubeApiKey: true,
+      youtubeApiKeySource: "env" as const,
+      hasTikTokProvider: false,
+      hasMetaGraphToken: false
+    };
+    const competitors = getDemoCompetitors({ platform: "youtube" });
+    let createdPosts = 0;
+    let updatedPosts = 0;
+
+    for (const competitor of competitors) {
+      const rawPosts = await adapters.youtube.fetchLatestPosts(competitor, {
+        settings: youtubeSettings,
+        syncRunId
+      });
+      const result = upsertDemoPostsForCompetitor(competitor, rawPosts, syncRunId);
+      createdPosts += result.createdPosts;
+      updatedPosts += result.updatedPosts;
+    }
+
+    if (platform === "youtube") {
+      return {
+        syncRunId,
+        competitors: competitors.length,
+        createdPosts,
+        updatedPosts,
+        mockMode: false,
+        provider: "youtube_data_api_v3",
+        syncedAt: new Date().toISOString(),
+        note: "YouTube đang lấy dữ liệu thật qua YouTube Data API v3. TikTok và Facebook vẫn dùng adapter mô phỏng cho bản public demo."
+      };
+    }
+
+    const demoResult = syncDemoData(platform, { excludePlatforms: ["youtube"] });
+    return {
+      ...demoResult,
+      syncRunId,
+      competitors: demoResult.competitors + competitors.length,
+      createdPosts: demoResult.createdPosts + createdPosts,
+      updatedPosts: demoResult.updatedPosts + updatedPosts,
+      mockMode: false,
+      provider: "mixed_youtube_api_and_demo_adapters",
+      note: "YouTube đang lấy dữ liệu thật qua YouTube Data API v3; TikTok và Facebook dùng adapter mô phỏng vì chưa có data provider hợp lệ."
+    };
+  }
+
+  return syncDemoData(platform);
 }
 
 async function cleanupMockYouTubePosts() {

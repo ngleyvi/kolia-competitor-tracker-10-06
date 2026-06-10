@@ -1,9 +1,10 @@
 import type { Competitor, Post } from "@prisma/client";
-import { competitorSeeds, generateMockPostsForCompetitor, seedPostCountForPlatform } from "@/lib/mockData";
-import type { AnalyticsFilters, Platform, PublicSettings, SourceType } from "@/lib/types";
+import { competitorSeeds, enrichRawPost, generateMockPostsForCompetitor, seedPostCountForPlatform } from "@/lib/mockData";
+import type { AnalyticsFilters, Platform, PublicSettings, RawPostInput, SourceType } from "@/lib/types";
 
 type DemoCompetitor = Competitor;
 type DemoPost = Post & { competitor: DemoCompetitor };
+type EnrichedDemoPost = ReturnType<typeof enrichRawPost>;
 
 type DemoState = {
   competitors: DemoCompetitor[];
@@ -53,7 +54,7 @@ function createPosts(competitors: DemoCompetitor[]) {
 }
 
 function attachCompetitor(
-  post: ReturnType<typeof generateMockPostsForCompetitor>[number],
+  post: EnrichedDemoPost,
   competitor: DemoCompetitor,
   id: string
 ): DemoPost {
@@ -87,13 +88,14 @@ function attachCompetitor(
 
 function createInitialState(): DemoState {
   const competitors = createCompetitors();
+  const hasYoutubeApiKey = Boolean(process.env.YOUTUBE_API_KEY?.trim());
   return {
     competitors,
     posts: createPosts(competitors),
     settings: {
-      mockMode: true,
-      hasYoutubeApiKey: Boolean(process.env.YOUTUBE_API_KEY?.trim()),
-      youtubeApiKeySource: process.env.YOUTUBE_API_KEY?.trim() ? "env" : undefined,
+      mockMode: !hasYoutubeApiKey,
+      hasYoutubeApiKey,
+      youtubeApiKeySource: hasYoutubeApiKey ? "env" : undefined,
       hasTikTokProvider: false,
       hasMetaGraphToken: false,
       tiktokProviderUrl: undefined
@@ -153,11 +155,12 @@ export function getDemoSettings() {
 
 export function updateDemoSettings(input: Partial<Record<string, string | boolean>>) {
   const state = getDemoState();
+  const hasYoutubeApiKey = Boolean(process.env.YOUTUBE_API_KEY?.trim() || input.youtubeApiKey);
   state.settings = {
     ...state.settings,
     mockMode: input.mockMode === undefined ? state.settings.mockMode : Boolean(input.mockMode),
-    hasYoutubeApiKey: Boolean(process.env.YOUTUBE_API_KEY?.trim() || input.youtubeApiKey),
-    youtubeApiKeySource: process.env.YOUTUBE_API_KEY?.trim() || input.youtubeApiKey ? "env" : undefined,
+    hasYoutubeApiKey,
+    youtubeApiKeySource: hasYoutubeApiKey ? "env" : undefined,
     hasTikTokProvider: Boolean(input.tiktokProviderUrl && input.tiktokProviderToken),
     hasMetaGraphToken: Boolean(input.metaGraphToken),
     tiktokProviderUrl: typeof input.tiktokProviderUrl === "string" ? input.tiktokProviderUrl : state.settings.tiktokProviderUrl
@@ -165,11 +168,68 @@ export function updateDemoSettings(input: Partial<Record<string, string | boolea
   return state.settings;
 }
 
-export function syncDemoData(platform?: Platform) {
+function updateExistingDemoPost(existing: DemoPost, post: EnrichedDemoPost, competitor: DemoCompetitor): DemoPost {
+  return {
+    ...existing,
+    competitorId: competitor.id,
+    competitor,
+    platform: post.platform,
+    postUrl: post.postUrl,
+    title: post.title,
+    caption: post.caption,
+    publishedAt: post.publishedAt,
+    thumbnailUrl: post.thumbnailUrl ?? null,
+    format: post.format,
+    contentPillar: post.contentPillar,
+    promotionType: post.promotionType,
+    toneOfVoice: post.toneOfVoice,
+    hookType: post.hookType,
+    mainTopic: post.mainTopic,
+    views: post.views,
+    likes: post.likes,
+    comments: post.comments,
+    shares: post.shares,
+    engagementRate: post.engagementRate,
+    viralityScore: post.viralityScore,
+    updatedAt: new Date()
+  };
+}
+
+export function upsertDemoPostsForCompetitor(competitor: DemoCompetitor, rawPosts: RawPostInput[], syncRunId: string) {
+  const state = getDemoState();
+  let createdPosts = 0;
+  let updatedPosts = 0;
+
+  for (const rawPost of rawPosts) {
+    const enriched = enrichRawPost({
+      ...rawPost,
+      competitorId: competitor.id
+    });
+    const existingIndex = state.posts.findIndex(
+      (post) => post.competitorId === competitor.id && post.postUrl === enriched.postUrl
+    );
+
+    if (existingIndex >= 0) {
+      state.posts[existingIndex] = updateExistingDemoPost(state.posts[existingIndex], enriched, competitor);
+      updatedPosts += 1;
+      continue;
+    }
+
+    state.posts.unshift(attachCompetitor(enriched, competitor, `demo_api_${syncRunId}_${competitor.id}_${createdPosts}`));
+    createdPosts += 1;
+  }
+
+  state.posts = sortPosts(state.posts, "newest");
+  return { createdPosts, updatedPosts };
+}
+
+export function syncDemoData(platform?: Platform, options: { excludePlatforms?: Platform[] } = {}) {
   const state = getDemoState();
   state.syncRuns += 1;
   const batchKey = `public-demo-${state.syncRuns}-${Date.now()}`;
-  const competitors = platform ? state.competitors.filter((competitor) => competitor.platform === platform) : state.competitors;
+  const excludedPlatforms = new Set(options.excludePlatforms ?? []);
+  const competitors = (platform ? state.competitors.filter((competitor) => competitor.platform === platform) : state.competitors)
+    .filter((competitor) => !excludedPlatforms.has(competitor.platform as Platform));
   const created: DemoPost[] = [];
 
   for (const competitor of competitors) {
