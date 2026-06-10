@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Competitor {
+  id               String   @id @default(cuid())
+  name             String
+  platform         String
+  source           String
+  segmentation     String?
+  category         String
+  topicDescription String?
+  channelUrl       String
+  avatarUrl        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  posts            Post[]
+
+  @@index([platform])
+  @@index([source])
+}
+
+model Post {
+  id             String     @id @default(cuid())
+  competitorId   String
+  competitor     Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  platform       String
+  postUrl        String
+  title          String
+  caption        String
+  publishedAt    DateTime
+  thumbnailUrl   String?
+  format         String
+  contentPillar  String
+  promotionType  String
+  toneOfVoice    String
+  hookType       String
+  mainTopic      String
+  views          Int        @default(0)
+  likes          Int        @default(0)
+  comments       Int        @default(0)
+  shares         Int        @default(0)
+  engagementRate Float      @default(0)
+  viralityScore  Float      @default(0)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([platform])
+  @@index([contentPillar])
+  @@index([publishedAt])
+}
+
+model InsightReport {
+  id                    String   @id @default(cuid())
+  platform              String
+  periodStart           DateTime
+  periodEnd             DateTime
+  summary               String
+  topFormats            String
+  topTopics             String
+  contentGaps           String
+  suggestedContentLines String
+  suggestedPrograms     String
+  createdAt             DateTime @default(now())
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
