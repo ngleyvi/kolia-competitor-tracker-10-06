@@ -1,12 +1,12 @@
 import { SettingsDataSourceForm } from "@/components/SettingsDataSourceForm";
-import { prisma } from "@/lib/prisma";
+import { getCompetitors } from "@/lib/analytics";
 import { getPublicSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const [competitors, settings] = await Promise.all([
-    prisma.competitor.findMany({ orderBy: [{ platform: "asc" }, { name: "asc" }] }),
+    getCompetitors(),
     getPublicSettings()
   ]);
 

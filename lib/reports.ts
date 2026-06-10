@@ -1,5 +1,6 @@
 import { platformLabels, sourceLabels } from "@/lib/constants";
 import { aggregatePosts, competitorSummaries, getCompetitors, getFilteredPosts } from "@/lib/analytics";
+import { isPublicDemoRuntime } from "@/lib/demoData";
 import { prisma } from "@/lib/prisma";
 import type { AnalyticsFilters, Platform, SourceType } from "@/lib/types";
 import { formatDate, formatNumber, formatPercent } from "@/lib/utils";
@@ -66,19 +67,21 @@ export async function generateReport(filters: AnalyticsFilters = {}) {
       "Nội dung chỉ phục vụ mục đích nghiên cứu marketing, không phải khuyến nghị đầu tư cá nhân."
   };
 
-  await prisma.insightReport.create({
-    data: {
-      platform: filters.platform && filters.platform !== "all" ? filters.platform : "all",
-      periodStart,
-      periodEnd,
-      summary,
-      topFormats: JSON.stringify(topFormats),
-      topTopics: JSON.stringify(topTopics),
-      contentGaps: JSON.stringify(contentGaps),
-      suggestedContentLines: JSON.stringify(suggestedContentLines),
-      suggestedPrograms: JSON.stringify(suggestedPrograms)
-    }
-  });
+  if (!isPublicDemoRuntime()) {
+    await prisma.insightReport.create({
+      data: {
+        platform: filters.platform && filters.platform !== "all" ? filters.platform : "all",
+        periodStart,
+        periodEnd,
+        summary,
+        topFormats: JSON.stringify(topFormats),
+        topTopics: JSON.stringify(topTopics),
+        contentGaps: JSON.stringify(contentGaps),
+        suggestedContentLines: JSON.stringify(suggestedContentLines),
+        suggestedPrograms: JSON.stringify(suggestedPrograms)
+      }
+    });
+  }
 
   return report;
 }

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getDemoSettings, isPublicDemoRuntime, updateDemoSettings } from "@/lib/demoData";
 import type { PublicSettings } from "@/lib/types";
 
 const settingKeys = [
@@ -12,6 +13,17 @@ const settingKeys = [
 export type SettingKey = (typeof settingKeys)[number];
 
 export async function getSettingsMap() {
+  if (isPublicDemoRuntime()) {
+    const settings = getDemoSettings();
+    return new Map<SettingKey, string>([
+      ["mockMode", String(settings.mockMode)],
+      ["youtubeApiKey", ""],
+      ["tiktokProviderUrl", settings.tiktokProviderUrl ?? ""],
+      ["tiktokProviderToken", ""],
+      ["metaGraphToken", ""]
+    ]);
+  }
+
   const rows = await prisma.setting.findMany();
   const values = new Map<SettingKey, string>();
   for (const key of settingKeys) {
@@ -27,6 +39,10 @@ export async function getSettingsMap() {
 }
 
 export async function getPublicSettings(): Promise<PublicSettings> {
+  if (isPublicDemoRuntime()) {
+    return getDemoSettings();
+  }
+
   const settings = await getSettingsMap();
   const envYoutubeApiKey = process.env.YOUTUBE_API_KEY?.trim();
   const storedYoutubeApiKey = settings.get("youtubeApiKey")?.trim();
@@ -43,12 +59,17 @@ export async function getPublicSettings(): Promise<PublicSettings> {
 export async function getServerYoutubeApiKey() {
   const envYoutubeApiKey = process.env.YOUTUBE_API_KEY?.trim();
   if (envYoutubeApiKey) return envYoutubeApiKey;
+  if (isPublicDemoRuntime()) return "";
 
   const row = await prisma.setting.findUnique({ where: { key: "youtubeApiKey" } });
   return row?.value.trim() || "";
 }
 
 export async function updateSettings(input: Partial<Record<SettingKey, string | boolean>>) {
+  if (isPublicDemoRuntime()) {
+    return updateDemoSettings(input);
+  }
+
   const entries = Object.entries(input).filter(([, value]) => value !== undefined);
   await Promise.all(
     entries.map(([key, value]) =>

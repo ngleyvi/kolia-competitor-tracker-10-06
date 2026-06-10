@@ -1,5 +1,6 @@
 import type { Competitor, Post } from "@prisma/client";
 import { contentPillars } from "@/lib/constants";
+import { getDemoCompetitors, getDemoPosts, isPublicDemoRuntime } from "@/lib/demoData";
 import { prisma } from "@/lib/prisma";
 import type { AnalyticsFilters, Platform, SortBy, SourceType } from "@/lib/types";
 import { daysAgo } from "@/lib/utils";
@@ -32,6 +33,10 @@ function sortOrder(sortBy?: SortBy) {
 }
 
 export async function getFilteredPosts(filters: AnalyticsFilters = {}, limit?: number): Promise<PostWithCompetitor[]> {
+  if (isPublicDemoRuntime()) {
+    return getDemoPosts(filters, limit);
+  }
+
   const platform = cleanFilter(filters.platform);
   const source = cleanFilter(filters.source);
   const days = filters.days ?? 90;
@@ -55,6 +60,10 @@ export async function getFilteredPosts(filters: AnalyticsFilters = {}, limit?: n
 }
 
 export async function getCompetitors(filters: Pick<AnalyticsFilters, "platform" | "source"> = {}) {
+  if (isPublicDemoRuntime()) {
+    return getDemoCompetitors(filters);
+  }
+
   const platform = cleanFilter(filters.platform);
   const source = cleanFilter(filters.source);
   return prisma.competitor.findMany({

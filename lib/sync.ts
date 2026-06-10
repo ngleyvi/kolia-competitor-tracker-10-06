@@ -1,6 +1,7 @@
 import { FacebookAdapter } from "@/lib/adapters/facebookAdapter";
 import { TikTokAdapter } from "@/lib/adapters/tiktokAdapter";
 import { YouTubeAdapter } from "@/lib/adapters/youtubeAdapter";
+import { isPublicDemoRuntime, syncDemoData } from "@/lib/demoData";
 import { enrichRawPost } from "@/lib/mockData";
 import { prisma } from "@/lib/prisma";
 import { getPublicSettings } from "@/lib/settings";
@@ -13,6 +14,10 @@ const adapters = {
 };
 
 export async function syncCompetitorData(platform?: Platform) {
+  if (isPublicDemoRuntime()) {
+    return syncDemoData(platform);
+  }
+
   const settings = await getPublicSettings();
   if ((!platform || platform === "youtube") && settings.hasYoutubeApiKey && !settings.mockMode) {
     await cleanupMockYouTubePosts();
